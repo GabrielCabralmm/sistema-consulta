@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   subtitulo: {
     fontSize: 18,
     color: "#004196",
-    opacity: 0.9,
+    fontWeight: "bold",
   },
   card: {
     backgroundColor: "#e9e9e9",
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#6b6b6b",
   },
   label: {
     fontSize: 16,
