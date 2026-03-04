@@ -169,12 +169,12 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#0084ff",
     marginBottom: 8,
   },
   subtitulo: {
     fontSize: 18,
-    color: "#fff",
+    color: "#004196",
     opacity: 0.9,
   },
   card: {
