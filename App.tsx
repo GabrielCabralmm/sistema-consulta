@@ -80,7 +80,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#79059C",
+    backgroundColor: "#f0f0f0",
   },
   scrollContent: {
     padding: 20,
@@ -93,12 +93,12 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#272727",
     marginBottom: 8,
   },
   subtitulo: {
     fontSize: 18,
-    color: "#fff",
+    color: "#272727",
     opacity: 0.9,
   },
   rodape: {
