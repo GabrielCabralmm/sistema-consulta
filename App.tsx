@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Button, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Especialidade } from "./src/types/especialidade";
 import { Paciente } from "./src/types/paciente";
 import { Medico } from "./src/interfaces/medico";
 import { Consulta } from "./src/interfaces/consulta";
+import { ConsultaCard } from "./src/components";
 
 export default function App() {
   const cardiologia: Especialidade = {
@@ -33,13 +34,12 @@ export default function App() {
     id: 1,
     medico: medico1,
     paciente: paciente1,
-    data: new Date(2026, 2, 10), // 10/03/2026
+    data: new Date(2026, 2, 10),
     valor: 350,
     status: "agendada",
     observacoes: "Consulta de rotina",
   });
 
-  // Funções para manipular a consulta
   function confirmarConsulta() {
     setConsulta({
       ...consulta,
@@ -54,21 +54,10 @@ export default function App() {
     });
   }
 
-  function formatarValor(valor: number): string {
-    return valor.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-  }
-
-  function formatarData(data: Date): string {
-    return data.toLocaleDateString("pt-BR");
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Cabeçalho */}
         <View style={styles.header}>
@@ -76,78 +65,13 @@ export default function App() {
           <Text style={styles.subtitulo}>Consulta #{consulta.id}</Text>
         </View>
 
-        {/* Card da Consulta */}
-        <View style={styles.card}>
-          {/* Status Badge */}
-          <View style={[
-            styles.statusBadge,
-            consulta.status === "confirmada" && styles.statusConfirmada,
-            consulta.status === "cancelada" && styles.statusCancelada,
-          ]}>
-            <Text style={styles.statusTexto}>{consulta.status.toUpperCase()}</Text>
-          </View>
+        {}
+        <ConsultaCard
+          consulta={consulta}
+          onConfirmar={confirmarConsulta}
+          onCancelar={cancelarConsulta}
+        />
 
-          {/* Informações do Médico */}
-          <View style={styles.secao}>
-            <Text style={styles.label}>👨‍⚕️ Médico</Text>
-            <Text style={styles.valor}>{consulta.medico.nome}</Text>
-            <Text style={styles.info}>CRM: {consulta.medico.crm}</Text>
-            <Text style={styles.info}>{consulta.medico.especialidade.nome}</Text>
-          </View>
-
-          {/* Informações do Paciente */}
-          <View style={styles.secao}>
-            <Text style={styles.label}>👤 Paciente</Text>
-            <Text style={styles.valor}>{consulta.paciente.nome}</Text>
-            <Text style={styles.info}>CPF: {consulta.paciente.cpf}</Text>
-            <Text style={styles.info}>Email: {consulta.paciente.email}</Text>
-            {consulta.paciente.telefone && (
-              <Text style={styles.info}>Tel: {consulta.paciente.telefone}</Text>
-            )}
-          </View>
-
-          {/* Informações da Consulta */}
-          <View style={styles.secao}>
-            <Text style={styles.label}>📅 Dados da Consulta</Text>
-            <Text style={styles.valor}>Data: {formatarData(consulta.data)}</Text>
-            <Text style={styles.valor}>Valor: {formatarValor(consulta.valor)}</Text>
-            {consulta.observacoes && (
-              <Text style={styles.observacoes}>{consulta.observacoes}</Text>
-            )}
-          </View>
-
-          {/* Botões de Ação */}
-          <View style={styles.acoes}>
-            {consulta.status === "agendada" && (
-              <>
-                <View style={styles.botaoContainer}>
-                  <Button
-                    title="Confirmar Consulta"
-                    onPress={confirmarConsulta}
-                    color="#008d05"
-                  />
-                </View>
-                <View style={styles.botaoContainer}>
-                  <Button
-                    title="Cancelar Consulta"
-                    onPress={cancelarConsulta}
-                    color="#c70000"
-                  />
-                </View>
-              </>
-            )}
-            {consulta.status === "confirmada" && (
-              <View style={styles.mensagem}>
-                <Text style={styles.mensagemTexto}>✓ Consulta confirmada com sucesso!</Text>
-              </View>
-            )}
-            {consulta.status === "cancelada" && (
-              <View style={styles.mensagemCancelada}>
-                <Text style={styles.mensagemTexto}>✗ Consulta cancelada</Text>
-              </View>
-            )}
-          </View>
-        </View>
       </ScrollView>
     </View>
   );
@@ -156,11 +80,11 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#79059C",
   },
   scrollContent: {
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 60,
   },
   header: {
     alignItems: "center",
@@ -169,96 +93,13 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#0084ff",
+    color: "#fff",
     marginBottom: 8,
   },
   subtitulo: {
     fontSize: 18,
-    color: "#004196",
-    fontWeight: "bold",
-  },
-  card: {
-    backgroundColor: "#e9e9e9",
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  statusBadge: {
-    backgroundColor: "#FFA500",
-    alignSelf: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  statusConfirmada: {
-    backgroundColor: "#008d05",
-  },
-  statusCancelada: {
-    backgroundColor: "#c70000",
-  },
-  statusTexto: {
     color: "#fff",
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  secao: {
-    marginBottom: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#6b6b6b",
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#0084ff",
-    marginBottom: 8,
-  },
-  valor: {
-    fontSize: 18,
-    color: "#333",
-    marginBottom: 4,
-  },
-  info: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 2,
-  },
-  observacoes: {
-    fontSize: 14,
-    color: "#555",
-    fontStyle: "italic",
-    marginTop: 8,
-  },
-  acoes: {
-    marginTop: 10,
-  },
-  botaoContainer: {
-    marginBottom: 12,
-  },
-  mensagem: {
-    backgroundColor: "#E8F5E9",
-    padding: 16,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: "#008d05",
-  },
-  mensagemCancelada: {
-    backgroundColor: "#FFEBEE",
-    padding: 16,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: "#c70000",
-  },
-  mensagemTexto: {
-    fontSize: 16,
-    color: "#333",
-    fontWeight: "600",
-    textAlign: "center",
+    opacity: 0.9,
   },
   rodape: {
     marginTop: 24,
@@ -271,5 +112,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
     lineHeight: 18,
+    marginBottom: 4,
   },
 });
