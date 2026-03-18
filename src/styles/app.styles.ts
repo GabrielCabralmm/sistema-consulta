@@ -2,7 +2,7 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#14059c",
+    backgroundColor: "#bb0a21",
   },
   scrollContent: {
     padding: 20,
@@ -15,12 +15,12 @@ export const styles = StyleSheet.create({
   titulo: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#FFF",
     marginBottom: 8,
   },
   subtitulo: {
     fontSize: 18,
-    color: "#fff",
+    color: "#FFF",
     opacity: 0.9,
   },
   rodape: {
@@ -31,7 +31,7 @@ export const styles = StyleSheet.create({
   },
   rodapeTexto: {
     fontSize: 12,
-    color: "#fff",
+    color: "#333",
     textAlign: "center",
     lineHeight: 18,
     marginBottom: 4,
