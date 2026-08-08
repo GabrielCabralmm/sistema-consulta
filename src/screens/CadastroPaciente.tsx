@@ -1,306 +1,269 @@
-import { Alert } from "react-native";
-import { Paciente } from "../types/paciente";
+import React, { useState } from "react";
+import {
+ View,
+ Text,
+ StyleSheet,
+ TouchableOpacity,
+ TextInput,
+ ScrollView,
+ Alert,
+ ActivityIndicator,
+} from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useAuth } from "../contexts/AuthContext";
+import { cadastrarUsuario } from "../services/authService";
 
-export default function CadastroPaciente({ navigation }: any) {
-  const [cpf, setCpf] = useState("");
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [etapa, setEtapa] = useState<"cpf" | "cadastro">("cpf");
-  const [verificando, setVerificando] = useState(false);
-  const [erro, setErro] = useState("");
+type CadastroPacienteProps = {
+ navigation: any;
+};
+
+// ─── Funções de máscara ───────────────────────────────────────────────────────
+
+function aplicarMascaraCPF(valor: string): string {
+ const numeros = valor.replace(/\D/g, "").slice(0, 11);
+ if (numeros.length <= 3) return numeros;
+ if (numeros.length <= 6) return `${numeros.slice(0, 3)}.${numeros.slice(3)}`;
+ if (numeros.length <= 9)
+ return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6)}`;
+ return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6, 9)}-${numeros.slice(9)}`;
 }
 
-useEffect(() => {
-  const unsubscribe = navigation.addListener('focus', async () => {
-    console.log("Tela de Login focada - verificando sessão");
-    
-    try {
-      const pacienteLogado = await obterPacienteLogado();
-      if (pacienteLogado) {
-        console.log("Paciente já está logado:", pacienteLogado.nome);
-        console.log("Redirecionando para Home...");
-        navigation.replace("Home");
-        return;
-      }
-      console.log("Nenhum paciente logado - mostrando tela de login");
-    } catch (e) {
-      console.error("Erro ao verificar paciente logado:", e);
-    }
-    
-    setEtapa("cpf");
-    setCpf("");
-    setNome("");
-    setEmail("");
-    setTelefone("");
-    setErro("");
-    setVerificando(false);
-  });
-  return unsubscribe;
-}, [navigation]);
-
-function validarCPF(cpf: string): boolean {
-  const cpfLimpo = cpf.replace(/\D/g, "");
-  return cpfLimpo.length === 11;
+function aplicarMascaraTelefone(valor: string): string {
+ const numeros = valor.replace(/\D/g, "").slice(0, 11);
+ if (numeros.length === 0) return "";
+ if (numeros.length <= 2) return `(${numeros}`;
+ if (numeros.length <= 7)
+ return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
+ return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`;
 }
 
-async function verificarCPF() {
-  setErro("");
-  
-  if (!cpf.trim()) {
-    Alert.alert("Erro", "Por favor, preencha seu CPF");
-    return;
-  }
-  if (!validarCPF(cpf)) {
-    Alert.alert("Erro", "CPF deve ter 11 dígitos");
-    return;
-  }
-  try {
-    setVerificando(true);
-    const pacientes = await obterPacientes();
-    
-    console.log("Total de pacientes no storage:", pacientes.length);
-    console.log("CPF buscado (sem formatação):", cpf.replace(/\D/g, ""));
-    
-    const pacienteExistente = pacientes.find(
-      (p) => p.cpf.replace(/\D/g, "") === cpf.replace(/\D/g, "")
-    );
-    if (pacienteExistente) {
-      console.log("Paciente encontrado:", pacienteExistente.nome);
-      await salvarPacienteLogado(pacienteExistente);
-      console.log("Login realizado! Navegando para Home...");
-      navigation.replace("Home");
-    } else {
-      console.log("Paciente NÃO encontrado");
-      setErro("CPF não encontrado no cadastro. Verifique se digitou corretamente.");
-    }
-  } catch (erro) {
-    console.error("Erro ao verificar CPF:", erro);
-    Alert.alert("Erro", "Não foi possível verificar o CPF");
-  } finally {
-    setVerificando(false);
-  }
-}
+// ─────────────────────────────────────────────────────────────────────────────
 
-async function completarCadastro() {
-  if (!nome.trim()) {
-    Alert.alert("Erro", "Por favor, preencha seu nome");
-    return;
-  }
-  if (!email.trim()) {
-    Alert.alert("Erro", "Por favor, preencha seu email");
-    return;
-  }
-  try {
-    setVerificando(true);
-    
-    // Cria novo paciente
-    const novoPaciente: Paciente = {
-      id: Date.now(),
-      nome: nome.trim(),
-      cpf: cpf.trim(),
-      email: email.trim(),
-      telefone: telefone.trim() || undefined,
-    };
-    // Adiciona à lista e salva
-    const pacientes = await obterPacientes();
-    const novaLista = [...pacientes, novoPaciente];
-    await salvarPacientes(novaLista);
-    
-    // Loga o paciente automaticamente
-    await salvarPacienteLogado(novoPaciente);
-    console.log("Cadastro realizado! Navegando para Home...");
-    navigation.replace("Home");
-  } catch (erro) {
-    console.error("Erro ao cadastrar:", erro);
-    Alert.alert("Erro", "Não foi possível realizar o cadastro");
-  } finally {
-    setVerificando(false);
-  }
-}
+export default function CadastroPaciente({ navigation }: CadastroPacienteProps) {
+ const { login } = useAuth();
+ const [nome, setNome] = useState("");
+ const [email, setEmail] = useState("");
+ const [senha, setSenha] = useState("");
+ const [cpf, setCpf] = useState("");
+ const [telefone, setTelefone] = useState("");
+ const [loading, setLoading] = useState(false);
 
-return (
-  <KeyboardAvoidingView
-    style={styles.container}
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
-  >
-    <StatusBar style="light" />
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.header}>
-        <Text style={styles.icone}>TDSPO</Text>
-        <Text style={styles.titulo}>Bem-vindo!</Text>
-        <Text style={styles.subtitulo}>
-          {etapa === "cpf" 
-            ? "Informe seu CPF para continuar"
-            : "Complete seu cadastro"}
-        </Text>
-      </View>
-      <View style={styles.form}>
-        {/* ETAPA 1: Verificação de CPF */}
-        {etapa === "cpf" && (
-          <>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>CPF *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="000.000.000-00"
-                value={cpf}
-                onChangeText={(texto) => {
-                  setCpf(texto);
-                  setErro(""); // Limpa o erro ao digitar
-                }}
-                keyboardType="numeric"
-                maxLength={14}
-                editable={!verificando}
-              />
-            </View>
-            <TouchableOpacity 
-              style={[styles.botao, verificando && styles.botaoDesabilitado]} 
-              onPress={verificarCPF}
-              disabled={verificando}
-            >
-              <Text style={styles.botaoTexto}>
-                {verificando ? "Verificando..." : "Continuar"}
-              </Text>
-            </TouchableOpacity>
-            {/* Mensagem de erro com link para cadastro */}
-            {erro && (
-              <View style={styles.erroContainer}>
-                <Text style={styles.erroTexto}>{erro}</Text>
-                <TouchableOpacity 
-                  style={styles.botaoCadastro} 
-                  onPress={() => setEtapa("cadastro")}
-                >
-                  <Text style={styles.botaoCadastroTexto}>
-                    Fazer cadastro agora
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            <View style={styles.infoContainer}>
-              <Text style={styles.infoTexto}>
-                Se você já é cadastrado, faremos login automaticamente.
-              </Text>
-            </View>
-          </>
-        )}
-        {/* ETAPA 2: Completar Cadastro */}
-        {etapa === "cadastro" && (
-          <>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>CPF</Text>
-              <TextInput
-                style={[styles.input, styles.inputDesabilitado]}
-                value={cpf}
-                editable={false}
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Nome Completo *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Digite seu nome completo"
-                value={nome}
-                onChangeText={setNome}
-                autoCapitalize="words"
-                editable={!verificando}
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="seu@email.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!verificando}
-              />
-            </View>
-            <TouchableOpacity 
-              style={[styles.botao, verificando && styles.botaoDesabilitado]} 
-              onPress={completarCadastro}
-              disabled={verificando}
-            >
-              <Text style={styles.botaoTexto}>
-                {verificando ? "Cadastrando..." : "Finalizar Cadastro"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.botaoVoltar} 
-              onPress={() => setEtapa("cpf")}
-              disabled={verificando}
-            >
-              <Text style={styles.botaoVoltarTexto}>← Voltar</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </ScrollView>
-  </KeyboardAvoidingView>
-);
+ async function handleCadastro() {
+ // Validação básica
+ if (!nome.trim() || !email.trim() || !senha.trim() || !cpf.trim() || !telefone.trim()) {
+ Alert.alert("Erro", "Preencha todos os campos");
+ return;
+ }
 
-function useState(arg0: string): [any, any] {
-    throw new Error("Function not implemented.");
+ if (senha.length < 6) {
+ Alert.alert("Erro", "A senha deve ter no mínimo 6 caracteres");
+ return;
+ }
+
+ const digitosCPF = cpf.replace(/\D/g, "");
+ if (digitosCPF.length !== 11) {
+ Alert.alert("Erro", "CPF inválido. Informe os 11 dígitos.");
+ return;
+ }
+
+ const digitosTel = telefone.replace(/\D/g, "");
+ if (digitosTel.length < 10 || digitosTel.length > 11) {
+ Alert.alert("Erro", "Telefone inválido. Informe DDD + número.");
+ return;
+ }
+
+ setLoading(true);
+ try {
+ // Cadastra novo usuário
+ const novoUsuario = await cadastrarUsuario({
+ nome: nome.trim(),
+ email: email.trim().toLowerCase(),
+ senha: senha,
+ cpf: cpf.trim(),
+ telefone: telefone.trim(),
+ });
+
+ if (!novoUsuario) {
+ Alert.alert("Erro", "Não foi possível criar a conta. Verifique se o email já está cadastrado.");
+ setLoading(false);
+ return;
+ }
+
+ // Faz login automático
+ const loginSucesso = await login(email.trim().toLowerCase(), senha);
+ 
+ if (loginSucesso) {
+ Alert.alert(
+ "Sucesso! 🎉",
+ `Bem-vindo(a), ${nome}! Sua conta foi criada com sucesso.`,
+ [{ text: "OK" }]
+ );
+ // NÃO navegamos manualmente - o Navigation redireciona automaticamente
+ } else {
+ Alert.alert("Aviso", "Conta criada! Faça login para continuar.");
+ navigation.goBack();
+ }
+ } catch (error: any) {
+ Alert.alert("Erro", error.message || "Ocorreu um erro ao criar a conta");
+ } finally {
+ setLoading(false);
+ }
+ }
+
+ return (
+ <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+ <StatusBar style="light" />
+ <View style={styles.content}>
+ <Text style={styles.icone}>📝</Text>
+ <Text style={styles.titulo}>Criar Conta</Text>
+ <Text style={styles.subtitulo}>Cadastre-se como paciente</Text>
+
+ <View style={styles.formContainer}>
+ <TextInput
+ style={styles.input}
+ placeholder="Nome completo"
+ placeholderTextColor="#999"
+ value={nome}
+ onChangeText={setNome}
+ editable={!loading}
+ />
+
+ <TextInput
+ style={styles.input}
+ placeholder="Email"
+ placeholderTextColor="#999"
+ value={email}
+ onChangeText={setEmail}
+ autoCapitalize="none"
+ keyboardType="email-address"
+ editable={!loading}
+ />
+
+ <TextInput
+ style={styles.input}
+ placeholder="Senha (mínimo 6 caracteres)"
+ placeholderTextColor="#999"
+ value={senha}
+ onChangeText={setSenha}
+ secureTextEntry
+ editable={!loading}
+ />
+
+ <TextInput
+ style={styles.input}
+ placeholder="CPF (000.000.000-00)"
+ placeholderTextColor="#999"
+ value={cpf}
+ onChangeText={(texto) => setCpf(aplicarMascaraCPF(texto))}
+ keyboardType="numeric"
+ maxLength={14}
+ editable={!loading}
+ />
+
+ <TextInput
+ style={styles.input}
+ placeholder="Telefone (11) 99999-9999"
+ placeholderTextColor="#999"
+ value={telefone}
+ onChangeText={(texto) => setTelefone(aplicarMascaraTelefone(texto))}
+ keyboardType="phone-pad"
+ maxLength={16}
+ editable={!loading}
+ />
+
+ <TouchableOpacity
+ style={[styles.botao, styles.botaoPrimario]}
+ onPress={handleCadastro}
+ disabled={loading}
+ >
+ {loading ? (
+ <ActivityIndicator color="#fff" />
+ ) : (
+ <Text style={styles.botaoTexto}>Criar Conta</Text>
+ )}
+ </TouchableOpacity>
+
+ <TouchableOpacity
+ style={[styles.botao, styles.botaoSecundario]}
+ onPress={() => navigation.goBack()}
+ disabled={loading}
+ >
+ <Text style={styles.botaoTextoSecundario}>Voltar ao Login</Text>
+ </TouchableOpacity>
+ </View>
+ </View>
+ </ScrollView>
+ );
 }
 
 
-function useEffect(arg0: () => any, arg1: any[]) {
-    throw new Error("Function not implemented.");
-}
-
-
-function obterPacienteLogado() {
-    throw new Error("Function not implemented.");
-}
-
-
-function setEtapa(arg0: string) {
-    throw new Error("Function not implemented.");
-}
-
-
-function setCpf(arg0: string) {
-    throw new Error("Function not implemented.");
-}
-
-
-function setNome(arg0: string) {
-    throw new Error("Function not implemented.");
-}
-
-
-function setEmail(arg0: string) {
-    throw new Error("Function not implemented.");
-}
-
-
-function setTelefone(arg0: string) {
-    throw new Error("Function not implemented.");
-}
-
-
-function setErro(arg0: string) {
-    throw new Error("Function not implemented.");
-}
-
-
-function setVerificando(arg0: boolean) {
-    throw new Error("Function not implemented.");
-}
-
-
-function obterPacientes() {
-    throw new Error("Function not implemented.");
-}
-
-
-function salvarPacienteLogado(pacienteExistente: any) {
-    throw new Error("Function not implemented.");
-}
-
-
-function salvarPacientes(novaLista: any[]) {
-    throw new Error("Function not implemented.");
-}
+const styles = StyleSheet.create({
+ container: {
+ flex: 1,
+ backgroundColor: "#79059C",
+ },
+ scrollContent: {
+ flexGrow: 1,
+ },
+ content: {
+ flex: 1,
+ justifyContent: "center",
+ alignItems: "center",
+ padding: 32,
+ paddingTop: 60,
+ paddingBottom: 40,
+ },
+ icone: {
+ fontSize: 80,
+ marginBottom: 24,
+ },
+ titulo: {
+ fontSize: 32,
+ fontWeight: "bold",
+ color: "#fff",
+ marginBottom: 8,
+ },
+ subtitulo: {
+ fontSize: 16,
+ color: "#fff",
+ opacity: 0.9,
+ marginBottom: 32,
+ },
+ formContainer: {
+ width: "100%",
+ gap: 16,
+ },
+ input: {
+ backgroundColor: "#fff",
+ paddingVertical: 16,
+ paddingHorizontal: 20,
+ borderRadius: 12,
+ fontSize: 16,
+ color: "#333",
+ },
+ botao: {
+ paddingVertical: 16,
+ paddingHorizontal: 32,
+ borderRadius: 12,
+ alignItems: "center",
+ },
+ botaoPrimario: {
+ backgroundColor: "#fff",
+ marginTop: 8,
+ },
+ botaoSecundario: {
+ backgroundColor: "transparent",
+ borderWidth: 2,
+ borderColor: "#fff",
+ },
+ botaoTexto: {
+ color: "#79059C",
+ fontWeight: "bold",
+ fontSize: 16,
+ },
+ botaoTextoSecundario: {
+ color: "#fff",
+ fontWeight: "bold",
+ fontSize: 16,
+ },
+});
